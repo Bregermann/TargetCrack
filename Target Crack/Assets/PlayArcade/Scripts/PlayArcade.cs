@@ -1,9 +1,10 @@
-using System;
-using System.IO;
+
+using System;  
+using System.IO;  
 using System.Globalization;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
+using System.Security.Cryptography;  
+using System.Text;  
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,17 +14,16 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-internal struct SessionHash
-{
+struct SessionHash
+{  
     public int n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, na;
     public string k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, ka;
-}
+}   
 
 public class CreatorCoin
 {
     public string coinKind;
     public float coinBalance;
-
     public CreatorCoin(string _coinKind, float _coinBalance)
     {
         coinKind = _coinKind;
@@ -35,7 +35,6 @@ public class CreatorCredit
 {
     public string kind;
     public float balance;
-
     public CreatorCredit(string _kind, float _balance)
     {
         kind = _kind;
@@ -47,14 +46,14 @@ public class PlayArcade : MonoBehaviour
 {
     private List<CreatorCoin> userCoins = new List<CreatorCoin>();
     private List<CreatorCredit> userCredits = new List<CreatorCredit>();
-
-    private string application_user_id = "test";
-    private string application_user_name = "Player";
+    
+    string application_user_id = "test"; 
+    string application_user_name = "Player";
 
     //public Text buyMessageText;
 
-    private string endPoint = "https://theplayarcade.com/api";
-
+    //private string endPoint = "https://theplayarcade.com/api";
+    
     private bool localTest = false;
 
     private string APP_COIN_KIND = "";
@@ -70,15 +69,13 @@ public class PlayArcade : MonoBehaviour
     private Text gameSessionCommandText;
 
     private String GameSessionID = "";
-    private int webSocketResetCounter = 0;
+    private int webSocketResetCounter=0;
     private List<WebSocket> webSocketList = new List<WebSocket>();
-
     //private int heartBeatCounter = 0;
     private DateTime lastHeartBeatTime;
-
     private bool bConnectedToNetwork = false;
 
-    private string game_session_id = "";
+    private string game_session_id="";
     private string game_session_code;
 
     private SessionHash session_hash;
@@ -88,29 +85,24 @@ public class PlayArcade : MonoBehaviour
     private List<int> k4n;
     private List<int> k5n;
 
-    public delegate void PA_OnAppStarted(bool success, string playerName, string coinKind, JSONObject gameInfo);
-
+    public delegate void PA_OnAppStarted(bool success, string playerName, JSONObject gameInfo);
     public PA_OnAppStarted pa_OnAppStarted;
 
-    public delegate void PA_EnableStartButton(bool enabled, string message = "");
-
+    public delegate void PA_EnableStartButton(bool enabled, string message="");
     public PA_EnableStartButton pa_EnableStartButton;
 
     public delegate void PA_StartGameSession(string k1, string k2, string k3, string k4, string k5);
-
     public PA_StartGameSession pa_StartGameSession;
 
     public delegate void PA_ScoreSubmitted();
-
     public PA_ScoreSubmitted pa_ScoreSubmitted;
 
     public delegate void PA_SessionUpdated();
-
     public PA_SessionUpdated pa_SessionUpdated;
 
     public delegate void PA_SessionEventSent(string eventValue);
-
     public PA_SessionEventSent pa_SessionEventSent;
+    
 
     [DllImport("__Internal")]
     private static extern void OnAppReady();
@@ -118,28 +110,32 @@ public class PlayArcade : MonoBehaviour
     [DllImport("__Internal")]
     private static extern void RefreshUserInfo();
 
-    private void Start()
+    public bool sufficientCredits;
+    
+    void Awake()
     {
-#if (UNITY_WEBGL == true && UNITY_EDITOR == false)
+        DontDestroyOnLoad(this);
+    }
+    
+    void Start()
+    {
+        #if (UNITY_WEBGL == true && UNITY_EDITOR == false)
             WebGLInput.captureAllKeyboardInput = false;
-#endif
+        #endif
 
-        if (doInteractiveGameSession)
-        {
+        if(doInteractiveGameSession){
             InvokeRepeating(nameof(CheckNetwork), 0.5f, 5.0f);
         }
 
-        if (gameSessionIDText) gameSessionIDText.text = "";
-        if (gameSessionCommandText) gameSessionCommandText.text = "";
+        if(gameSessionIDText) gameSessionIDText.text = "";
+        if(gameSessionCommandText) gameSessionCommandText.text = "";
     }
 
-    public void Init(string gameid, string apikey, string coinKind = "PLAY", string appuserid = "", string appusername = "", string publisher_id = "")
-    {
+    public void Init(string gameid, string apikey, string coinKind="PLAY", string appuserid="", string appusername=""){
         GAME_ID = gameid;
         API_KEY = apikey;
 
-        if (GAME_ID == "" || GAME_ID == null)
-        {
+        if(GAME_ID == "" || GAME_ID == null){
             Debug.LogError("You must set the GAME_ID variable in PlayArcade class object.");
             return;
         }
@@ -149,31 +145,27 @@ public class PlayArcade : MonoBehaviour
             APP_COIN_KIND = coinKind;
             application_user_id = appuserid;
             application_user_name = appusername;
-            if (application_user_id == "")
-            {
-                Debug.LogError("You must set the TEST_USER_ID(appuserid) variable in PlayArcade Init Call when running in DevMode.");
+            if(application_user_id == ""){
+                Debug.LogError("You must set the GAME_ID variable in PlayArcade class object.");
                 return;
             }
-
-            PUBLISHER_ID = publisher_id;
-            if (PUBLISHER_ID == "")
-            {
-                PUBLISHER_ID = appuserid;
-            }
-            StartApp(application_user_id + "|" + application_user_name + "|" + APP_COIN_KIND + "|" + PUBLISHER_ID);
-        }
-        else
-        {
+            
+            PUBLISHER_ID = application_user_id;
+            StartApp(application_user_id + "|" + application_user_name + "|" + APP_COIN_KIND + "|" + PUBLISHER_ID); 
+        } else {
             StartCoroutine(Start_Delayed(0.25f));
         }
     }
 
+
     public IEnumerator Start_Delayed(float waitTime)
     {
+
         yield return new WaitForSeconds(waitTime);
         //This calls the hosting page to send us important context information
         OnAppReady();
     }
+
 
     //StartApp is called from the web page the game is hosted on
     public void StartApp(string startAppString)
@@ -183,42 +175,38 @@ public class PlayArcade : MonoBehaviour
         string _userName = launchParams[1];
         string _coinKind = launchParams[2];
         string _publisherID = launchParams[3];
-
-        TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
+        
+        TextInfo myTI = new CultureInfo("en-US",false).TextInfo;
 
         application_user_id = _userId.ToLower();
-        application_user_name = myTI.ToTitleCase(_userName);
+        application_user_name = myTI.ToTitleCase( _userName );
         APP_COIN_KIND = _coinKind.ToUpper();
         PUBLISHER_ID = _publisherID.ToLower();
 
         Debug.Log("PlayArcade Init: " + startAppString);
-        if (application_user_id != "free")
-        {
+        if(application_user_id != "free"){
             getGameInfo();
-        }
-        else
-        {
+        } else {
             application_user_name = "Free Player";
             getGameInfo();
         }
     }
 
-    private void OnInitialUserCredits()
-    {
+    private void OnInitialUserCredits(){
         //pa_OnAppStarted(application_user_name);
     }
 
     public void MainMenu()
     {
-        if (doInteractiveGameSession)
-        {
+        if(doInteractiveGameSession){
             StartCoroutine(ConnectWhenReady(1.0f));
         }
     }
 
     //Continuously check the transaction to see if it's complete
-    private IEnumerator checkCoinTransaction(string transaction_id, float waitTime, bool repeat)
+    IEnumerator checkCoinTransaction(string transaction_id, float waitTime, bool repeat)
     {
+
         yield return new WaitForSeconds(waitTime);
         //Debug.Log("Checking transaction for: " + game_id + "  " + application_user_id + " " + transaction_id);
 
@@ -234,6 +222,7 @@ public class PlayArcade : MonoBehaviour
                 JSONObject jTransactionData = jResponse.GetField("transaction_data"); //Array
                 if (jTransactionData.Count > 0)
                 {
+
                     string transactionStatus = jTransactionData[0].GetField("status").str.ToLower();
 
                     if (transactionStatus == "pending" || transactionStatus == "pendingapproval")
@@ -252,6 +241,7 @@ public class PlayArcade : MonoBehaviour
                 {
                     StartCoroutine(checkCoinTransaction(transaction_id, 3, true));
                 }
+
             }
         });
         theRequest.MethodType = HTTPMethods.Post;
@@ -260,6 +250,7 @@ public class PlayArcade : MonoBehaviour
         theRequest.AddField("transaction_id", transaction_id);
 
         theRequest.Send();
+
     }
 
     public float getCoinBalance(string coinKind)
@@ -293,11 +284,12 @@ public class PlayArcade : MonoBehaviour
 
     public void getGameInfo()
     {
+
         string url = getEndPoint() + "/game/info";
         HTTPRequest theRequest = new HTTPRequest(new Uri(url), (request, response) =>
         {
-            Debug.Log(response.DataAsText);
-
+            //Debug.Log(response.DataAsText);
+            
             JSONObject jResponse = new JSONObject(response.DataAsText);
             JSONObject jData = jResponse.GetField("data");
             bool bResponseSuccess = true;
@@ -311,7 +303,8 @@ public class PlayArcade : MonoBehaviour
                 processUserCredits(jUserCredits);
             }
 
-            pa_OnAppStarted(bResponseSuccess, application_user_name, APP_COIN_KIND, jResponseData);
+            pa_OnAppStarted(bResponseSuccess, application_user_name, jResponseData);
+            
         });
         theRequest.MethodType = HTTPMethods.Post;
         theRequest.AddField("game_id", GAME_ID);
@@ -323,6 +316,7 @@ public class PlayArcade : MonoBehaviour
 
     public void getUserCredits(System.Action callback = null)
     {
+
         string url = getEndPoint() + "/credits/balance";
         HTTPRequest theRequest = new HTTPRequest(new Uri(url), (request, response) =>
         {
@@ -335,13 +329,12 @@ public class PlayArcade : MonoBehaviour
             {
                 JSONObject jUserCredits = jResponse.GetField("user_credits");
                 processUserCredits(jUserCredits);
-
-#if (UNITY_WEBGL == true && UNITY_EDITOR == false)
+                
+                #if (UNITY_WEBGL == true && UNITY_EDITOR == false)
                 RefreshUserInfo();
-#endif
+                #endif
 
-                if (callback != null)
-                {
+                if(callback != null){
                     callback();
                 }
             }
@@ -394,6 +387,7 @@ public class PlayArcade : MonoBehaviour
                 //buyMessageText.text = "Problem with transaction, please try again.";
                 Debug.Log("Invalid transaction");
             }
+
         });
 
         theRequest.MethodType = HTTPMethods.Post;
@@ -405,13 +399,13 @@ public class PlayArcade : MonoBehaviour
         theRequest.Send();
     }
 
-    private IEnumerator EnableStartButton(float waitTime, string message = "")
+    IEnumerator EnableStartButton(float waitTime, string message = "")
     {
         yield return new WaitForSeconds(waitTime);
         pa_EnableStartButton(true, message);
     }
 
-    private IEnumerator FadeStatus(Text statusText, float waitTime)
+    IEnumerator FadeStatus(Text statusText, float waitTime)
     {
         while (true)
         {
@@ -424,15 +418,13 @@ public class PlayArcade : MonoBehaviour
     {
         //Initiate a start game request on the server
         pa_EnableStartButton(false, "Requesting game start...");
-        if (application_user_id == "free")
-        {
+        if(application_user_id == "free"){
             StartCoroutine(StartGame_Delayed(0));
-        }
-        else
-        {
+        } else {
             BuyCreditItem("game_start", OnStartGameRequestComplete);
         }
     }
+
 
     private void OnStartGameRequestComplete(bool success, string application_credit_item_id, string message)
     {
@@ -440,32 +432,38 @@ public class PlayArcade : MonoBehaviour
         {
             pa_EnableStartButton(false, "Starting game...");
             StartCoroutine(StartGame_Delayed(0));
+            sufficientCredits = true;
         }
         else
         {
-            StartCoroutine(EnableStartButton(3, message));
+            //StartCoroutine(EnableStartButton(3, message));
+            pa_EnableStartButton(false, "Insufficient credit...");
+            Debug.LogError("Not enough credits!");
+            this.GetComponent<PlayArcadeIntegration>().startGameButtonCost.text = "Not enough credits!";
+            sufficientCredits = false;
         }
     }
 
-    private IEnumerator StartGame_Delayed(float waitTime)
+    IEnumerator StartGame_Delayed(float waitTime)
     {
         yield return new WaitForSeconds(waitTime);
         pa_EnableStartButton(false, "");
         StartGameSession();
     }
 
-    private void StartGameSession()
-    {
+    private void StartGameSession(){
+       
         pa_StartGameSession(session_hash.k1, session_hash.k2, session_hash.k3, session_hash.k4, session_hash.k5);
     }
 
-    public void GetGameCustomizations(System.Action<bool, JSONObject> callback)
-    {
+    public void GetGameCustomizations(System.Action<bool, JSONObject> callback){
+        
         //Debug.Log("Getting Game Customizations");
-        string url = getEndPoint() + "/game/customizations_active";
+        string url = getEndPoint() + "/game/customizations_active"; 
         //Debug.Log(url);
         HTTPRequest theRequest = new HTTPRequest(new Uri(url), (request, response) =>
         {
+
             Debug.Log(response.DataAsText);
 
             JSONObject jResponse = new JSONObject(response.DataAsText);
@@ -473,6 +471,7 @@ public class PlayArcade : MonoBehaviour
             bool bResponseSuccess = jResponse.GetField("success").b;
 
             callback(bResponseSuccess, data);
+
         });
 
         theRequest.MethodType = HTTPMethods.Post;
@@ -484,15 +483,14 @@ public class PlayArcade : MonoBehaviour
         theRequest.Send();
     }
 
-    public void GetHighScores(System.Action<bool, JSONObject> callback, int limit = 25)
-    {
-        //Debug.Log("Getting Game Customizations");
-        string url = getEndPoint() + "/game/scores";
+    public void GetHighScores(System.Action<bool, JSONObject> callback, int limit = 25){
+        
+        Debug.Log("Getting HighScores");
+        string url = getEndPoint() + "/game/scores"; 
         //Debug.Log(url);
         HTTPRequest theRequest = new HTTPRequest(new Uri(url), (request, response) =>
         {
-            Debug.Log(response.DataAsText);
-
+            //Debug.Log(response.DataAsText);
             JSONObject jResponse = new JSONObject(response.DataAsText);
             JSONObject data = jResponse.GetField("data");
             bool bResponseSuccess = jResponse.GetField("success").b;
@@ -510,18 +508,19 @@ public class PlayArcade : MonoBehaviour
         theRequest.Send();
     }
 
-    public void GetStoreData(System.Action<bool, JSONObject> callback)
-    {
+    public void GetStoreData(System.Action<bool, JSONObject> callback){
         //Debug.Log("Getting Store Data");
         string url = getEndPoint() + "/game/store_items";
         HTTPRequest theRequest = new HTTPRequest(new Uri(url), (request, response) =>
         {
+
             //Debug.Log(response.DataAsText);
 
             JSONObject jResponse = new JSONObject(response.DataAsText);
             JSONObject data = jResponse.GetField("data");
             bool bResponseSuccess = jResponse.GetField("success").b;
             callback(bResponseSuccess, data);
+
         });
 
         theRequest.MethodType = HTTPMethods.Post;
@@ -539,6 +538,7 @@ public class PlayArcade : MonoBehaviour
         string url = getEndPoint() + "/credits/buyCreditItem";
         HTTPRequest theRequest = new HTTPRequest(new Uri(url), (request, response) =>
         {
+
             //Debug.Log(response.DataAsText);
 
             JSONObject jResponse = new JSONObject(response.DataAsText);
@@ -549,13 +549,13 @@ public class PlayArcade : MonoBehaviour
             {
                 JSONObject jUserCredits = jResponse.GetField("user_credits");
                 processUserCredits(jUserCredits);
-
-#if (UNITY_WEBGL == true && UNITY_EDITOR == false)
+                
+                #if (UNITY_WEBGL == true && UNITY_EDITOR == false)
                 RefreshUserInfo();
-#endif
+                #endif
 
-                if (application_credit_item_id.ToLower() == "game_start")
-                {
+                if(application_credit_item_id.ToLower() == "game_start"){
+                    
                     //On the game start, we also process the session info
                     JSONObject session_info = jResponse.GetField("session"); //Array
                     game_session_id = session_info.GetField("id").str;
@@ -564,16 +564,16 @@ public class PlayArcade : MonoBehaviour
                     session_hash = processSessionCode(game_session_code);
 
                     callback(bResponseSuccess, application_credit_item_id, message);
-                }
-                else
-                {
+                } else {
                     callback(bResponseSuccess, application_credit_item_id, message);
                 }
+                
             }
             else
             {
                 callback(bResponseSuccess, application_credit_item_id, message);
             }
+
         });
 
         theRequest.MethodType = HTTPMethods.Post;
@@ -586,24 +586,23 @@ public class PlayArcade : MonoBehaviour
         theRequest.Send();
     }
 
+
     /////////////////////////////////////////////
     /// Session/High Score Stuff
     /////////////////////////////////////////////
+   
+    private void SaveSessionData(string dataKey, string dataValue1, string key, string dataValue2=""){
 
-    private void SaveSessionData(string dataKey, string dataValue1, string key, string dataValue2 = "", string dataValue3 = "")
-    {
-        if (application_user_id.ToLower() == "free")
-        {
+        if(application_user_id.ToLower() == "free") {
             return;
         }
-
-        if (!session_hash.ka.Contains(key))
-        {
-            Debug.Log("dataKey: " + dataKey);
+        
+        if(!session_hash.ka.Contains(key)){
+            Debug.Log("dataKey: " + dataKey );
             Debug.Log("Invalid Key");
             return;
         }
-
+        
         //Debug.Log(dataValue1);
         string url = getEndPoint() + "/game/session/data";
         HTTPRequest theRequest = new HTTPRequest(new Uri(url), (request, response) =>
@@ -611,36 +610,29 @@ public class PlayArcade : MonoBehaviour
             //Debug.Log(response.DataAsText);
 
             JSONObject jResponse = new JSONObject(response.DataAsText);
-            if (jResponse.GetField("success"))
-            {
+            if(jResponse.GetField("success")){
                 bool bResponseSuccess = jResponse.GetField("success").b;
                 if (bResponseSuccess)
                 {
                     //Debug.Log("Session Data Saved");
-                    if (jResponse.GetField("k"))
-                    {
+                    if(jResponse.GetField("k")){
                         string operationName = jResponse.GetField("k").str;
                         //Debug.Log("Operation: " + operationName);
-                        if (operationName == "SessionUpdate")
-                        {
+                        if(operationName == "SessionUpdate"){
                             pa_SessionUpdated();
                         }
 
-                        if (operationName == "SessionEnd")
-                        {
+                        if(operationName == "SessionEnd"){
                             pa_ScoreSubmitted();
                         }
 
-                        if (operationName == "SessionEvent")
-                        {
+                        if(operationName == "SessionEvent"){
                             string operationValue = jResponse.GetField("v").str;
                             pa_SessionEventSent(operationValue);
                         }
                     }
                 }
-            }
-            else
-            {
+            } else {
                 Debug.Log("Invalid Session");
             }
         });
@@ -649,17 +641,16 @@ public class PlayArcade : MonoBehaviour
         theRequest.MethodType = HTTPMethods.Post;
         theRequest.AddField("game_id", GAME_ID);
         theRequest.AddField("user_id", application_user_id);
-        theRequest.AddField("session_id", game_session_id);
+        theRequest.AddField("session_id", game_session_id); 
         theRequest.AddField("k", eDataKey);
         theRequest.AddField("v1", dataValue1);
         theRequest.AddField("v2", dataValue2);
-        theRequest.AddField("v3", dataValue3);
         theRequest.AddField("t", key);
         theRequest.Send();
     }
 
-    private int CreateSessionData(int sessionData)
-    {
+
+    private int CreateSessionData(int sessionData){
         int numParts = 2; //UnityEngine.Random.Range(3, 5);
         int numCores = 2; //UnityEngine.Random.Range(3, sessionData);
         k1n = AddCore(session_hash.n1, numParts);
@@ -670,25 +661,21 @@ public class PlayArcade : MonoBehaviour
         return numParts;
     }
 
-    public IEnumerator SendSessionKeys(float waitTime, string key)
-    {
+    public IEnumerator SendSessionKeys(float waitTime, string key){
         yield return new WaitForSeconds(waitTime);
         SaveSessionData("SessionKeys", session_hash.ka, key);
     }
 
-    public void SendSessionUpdate(int numCores, string key, float waitTime = 0)
-    {
+    public void SendSessionUpdate(int numCores, string key, float waitTime = 0){
         StartCoroutine(_SendSessionUpdate(numCores, key, waitTime));
     }
-
-    private IEnumerator _SendSessionUpdate(int numCores, string key, float waitTime)
-    {
+    
+    private IEnumerator _SendSessionUpdate(int numCores, string key, float waitTime){
         yield return new WaitForSeconds(waitTime);
         int numSegCore = CreateSessionData(numCores);
         string sendData = "";
-        if (numCores > 0)
-        {
-            for (int i = 0; i < numSegCore; i++)
+        if(numCores > 0) {
+            for (int i = 0; i < numSegCore ; i++)
             {
                 string sendData1 = CreateCoreSeg(i);
                 //Debug.Log(sendData1);
@@ -700,66 +687,52 @@ public class PlayArcade : MonoBehaviour
         }
     }
 
-    public void SendSessionEvent(string eventName, string eventDetails, string key, float waitTime = 0)
-    {
+    public void SendSessionEvent(string eventName, string eventDetails, string key, float waitTime = 0){
         StartCoroutine(_SendSessionEvent(eventName, eventDetails, key, waitTime));
     }
-
-    private IEnumerator _SendSessionEvent(string eventName, string eventDetails, string key, float waitTime)
-    {
+    
+    private IEnumerator _SendSessionEvent(string eventName, string eventDetails, string key, float waitTime){
         yield return new WaitForSeconds(waitTime);
         string esEventName = EncryptString(SESSION_KEY, eventName);
         string esDetails = EncryptString(SESSION_KEY, eventDetails);
         SaveSessionData("SessionEvent", esEventName, key, esDetails);
     }
 
-    public void SendSessionScore(int score, string key, float waitTime = 1)
-    {
+    public void SendSessionScore(int score, string key, float waitTime = 1){
         StartCoroutine(_SendSessionScore(score, key, waitTime));
     }
-
-    private IEnumerator _SendSessionScore(int score, string key, float waitTime = 0)
-    {
+    private IEnumerator _SendSessionScore(int score, string key, float waitTime = 0){
         yield return new WaitForSeconds(waitTime);
         SaveSessionData("SessionScore", score.ToString(), key);
     }
 
-    public void SendSessionStats(string stats, string key, float waitTime = 0)
-    {
+    public void SendSessionStats(string stats, string key, float waitTime = 0){
         StartCoroutine(_SendSessionStats(stats, key, waitTime));
     }
-
-    private IEnumerator _SendSessionStats(string stats, string key, float waitTime = 0)
-    {
+    private IEnumerator _SendSessionStats( string stats, string key, float waitTime = 0){
         yield return new WaitForSeconds(waitTime);
         SaveSessionData("SessionStats", stats, key);
     }
 
-    public void SendSessionStart(string msg, string key, float waitTime = 0)
-    {
+    public void SendSessionStart(string msg, string key, float waitTime = 0){
         StartCoroutine(_SendSessionStart(msg, key, waitTime));
     }
-
-    private IEnumerator _SendSessionStart(string msg, string key, float waitTime = 0)
-    {
+    private IEnumerator _SendSessionStart(string msg, string key, float waitTime = 0){
         yield return new WaitForSeconds(waitTime);
         SaveSessionData("SessionStart", "", key);
-        StartCoroutine(SendSessionKeys(1, key));
+        StartCoroutine(SendSessionKeys(1,key));
     }
 
-    public void SendSessionEnd(string msg, string key, float waitTime = 0)
-    {
+    
+    public void SendSessionEnd(string msg, string key, float waitTime = 0){
         StartCoroutine(_SendSessionEnd(msg, key, waitTime));
     }
-
-    private IEnumerator _SendSessionEnd(string msg, string key, float waitTime = 0)
-    {
+    private IEnumerator _SendSessionEnd(string msg, string key, float waitTime = 0){
         yield return new WaitForSeconds(waitTime);
         SaveSessionData("SessionEnd", msg, key);
     }
 
-    private List<int> AddCore(int core, int seg)
-    {
+    private List<int> AddCore(int core, int seg){
         List<int> cores = new List<int>(); int segCore = 0;
         for (int i = 0; i < seg - 1; i++)
         {
@@ -770,12 +743,10 @@ public class PlayArcade : MonoBehaviour
         return cores;
     }
 
-    private string CreateCoreSeg(int segCore)
-    {
+    private string CreateCoreSeg(int segCore){
         string coreDesc = ""; string vsp = "|"; string csp = ":";
         int instSplit = UnityEngine.Random.Range(1, 6);
-        switch (instSplit)
-        {
+        switch (instSplit){
             case 1: coreDesc = session_hash.k1 + csp + k1n[segCore] + vsp; coreDesc += session_hash.k2 + csp + k2n[segCore] + vsp; coreDesc += session_hash.k3 + csp + k3n[segCore] + vsp; coreDesc += session_hash.k4 + csp + k4n[segCore] + vsp; coreDesc += session_hash.k5 + csp + k5n[segCore]; break;
             case 2: coreDesc = session_hash.k2 + csp + k2n[segCore] + vsp; coreDesc += session_hash.k3 + csp + k3n[segCore] + vsp; coreDesc += session_hash.k4 + csp + k4n[segCore] + vsp; coreDesc += session_hash.k5 + csp + k5n[segCore] + vsp; coreDesc += session_hash.k1 + csp + k1n[segCore]; break;
             case 3: coreDesc = session_hash.k3 + csp + k3n[segCore] + vsp; coreDesc += session_hash.k4 + csp + k4n[segCore] + vsp; coreDesc += session_hash.k5 + csp + k5n[segCore] + vsp; coreDesc += session_hash.k1 + csp + k1n[segCore] + vsp; coreDesc += session_hash.k2 + csp + k2n[segCore]; break;
@@ -786,17 +757,15 @@ public class PlayArcade : MonoBehaviour
         return coreDesc;
     }
 
-    private SessionHash processSessionCode(string code)
-    {
+    private SessionHash processSessionCode(string code){
         Debug.Log("Processing Session Hash");
         //Debug.Log(code);
-        string blockOrder = code.Substring(0, 1);
+        string blockOrder = code.Substring(0,1);
         string sessionInfo = code.Substring(1); string sep = "-";
         List<string> blocks = sessionInfo.Split('-').ToList();
         string block1 = ""; string block2 = ""; string block3 = ""; string block4 = ""; string block5 = "";
-
-        switch (blockOrder)
-        {
+        
+        switch(blockOrder){
             case "a": case "f": block1 = blocks[0]; block2 = blocks[1]; block3 = blocks[2]; block4 = blocks[3]; block5 = blocks[4]; break;
             case "b": case "g": block1 = blocks[4]; block2 = blocks[0]; block3 = blocks[1]; block4 = blocks[2]; block5 = blocks[3]; break;
             case "c": case "h": block1 = blocks[3]; block2 = blocks[4]; block3 = blocks[0]; block4 = blocks[1]; block5 = blocks[2]; break;
@@ -805,7 +774,7 @@ public class PlayArcade : MonoBehaviour
         }
 
         string n1 = Regex.Replace(block1, "[^0-9]", String.Empty); string n2 = Regex.Replace(block4, "[^0-9]", String.Empty); string n3 = Regex.Replace(block3, "[^0-9]", String.Empty);
-        string k1 = block4.Substring(3 + n2.Length, 3); string k2 = block2.Substring(4, 3); string k3 = block2.Substring(0, 3); string k4 = block3.Substring(n3.Length + 1, 3); string k5 = block5.Substring(0, 3);
+        string k1 = block4.Substring(3 + n2.Length, 3); string k2 = block2.Substring(4,3); string k3 = block2.Substring(0,3); string k4 = block3.Substring(n3.Length +1, 3); string k5 = block5.Substring(0,3);
 
         SessionHash theValues = new SessionHash(); theValues.ka = k1 + sep + k2 + sep + k3 + sep + k4 + sep + k5;
         theValues.n1 = Convert.ToInt32(n1); theValues.n2 = Convert.ToInt32(n2); theValues.n3 = Convert.ToInt32(n3);
@@ -813,28 +782,27 @@ public class PlayArcade : MonoBehaviour
         return theValues;
     }
 
-    public void doLocalTest(bool which)
-    {
+    public void doLocalTest(bool which){
         localTest = which;
     }
 
-    private string getEndPoint()
-    {
-        if (localTest)
+    private string getEndPoint(){
+        if(localTest)
             return "http://localhost:3000/api";
-
+        
         return "https://theplayarcade.com/api";
     }
+    
 
     /////////////////////////////////////////////
     /// Interactive Stuff
     /////////////////////////////////////////////
 
-    private void ConnectToWebSocket(string channelID)
-    {
+    void ConnectToWebSocket(string channelID){
+        
         Debug.Log("Connecting to WebSocket AS " + channelID);
         var webSocket = new WebSocket(new Uri("wss://44l6i4zvq6.execute-api.us-east-1.amazonaws.com/Prod?gsId=" + channelID));
-
+        
         webSocketList.Add(webSocket);
 
         //AddChannel(channelID, sChannelName, webSocket);
@@ -842,6 +810,7 @@ public class PlayArcade : MonoBehaviour
         int numWebSockets = webSocketList.Count;
         Debug.Log("Num websockets in list after new: " + numWebSockets);
 
+        
         webSocket.OnOpen += OnWebSocketOpen;
         webSocket.OnError += OnWebSocketError; //This will also get hit when ping is not returned
         webSocket.OnClosed += OnWebSocketClosed;
@@ -855,10 +824,10 @@ public class PlayArcade : MonoBehaviour
     }
 
     private void OnWebSocketOpen(WebSocket webSocket)
-    {
+    {        
         Debug.Log("WebSocket is now Open!");
         //SetStatus("Connected");
-        if (gameSessionIDText) gameSessionIDText.text = "Game: " + GameSessionID;
+        if(gameSessionIDText) gameSessionIDText.text = "Game: " + GameSessionID;
     }
 
     private void OnBinaryMessageReceived(WebSocket webSocket, byte[] message)
@@ -871,25 +840,25 @@ public class PlayArcade : MonoBehaviour
         Debug.Log("WebSocket is now Closed!");
     }
 
-    private void OnWebSocketError(WebSocket ws, string error)
+    void OnWebSocketError(WebSocket ws, string error)
     {
         Debug.LogError("Error: " + error);
         Debug.LogError("Restarting in 3.");
-
-        StartCoroutine(resetWebSocket(3.0f, GameSessionID));
+       
+        StartCoroutine(resetWebSocket(3.0f,GameSessionID));
     }
 
-    private void DelayedWebSocketReset(string channelID)
-    {
+    void DelayedWebSocketReset(string channelID){
         //WebSocket will go idle after 10 minutes, and will be reset after 2 hours
         //So periodically reset it
         float timeOut = 90 * 60.0f;
         //float timeOut = 1 * 60.0f;
-        StartCoroutine(resetWebSocket(timeOut, channelID));
+        StartCoroutine(resetWebSocket(timeOut, channelID));    
     }
 
-    private IEnumerator resetWebSocket(float waitTime, string channelID)
+    IEnumerator resetWebSocket(float waitTime, string channelID)
     {
+        
         yield return new WaitForSeconds(waitTime);
         webSocketResetCounter++;
         Debug.Log("Resetting WebSocket " + webSocketResetCounter);
@@ -897,17 +866,17 @@ public class PlayArcade : MonoBehaviour
         int numWebSockets = webSocketList.Count;
         Debug.Log("Num old websockets in list: " + numWebSockets);
 
-        if (webSocketList.Count > 0)
-        {
+        
+        if(webSocketList.Count > 0){
             WebSocket currentWebSocket = webSocketList.ElementAt(0);
-
+            
             currentWebSocket.Close();
 
             webSocketList.Remove(currentWebSocket);
             //Destroy(currentWebSocket);
             currentWebSocket = null;
         }
-
+                
         int numWebSockets2 = webSocketList.Count;
         Debug.Log("Num old websockets in list after delete: " + numWebSockets2);
 
@@ -918,11 +887,11 @@ public class PlayArcade : MonoBehaviour
     {
         Debug.Log("Message received from server: " + message);
 
+
         JSONObject jMessage = new JSONObject(message);
         string jEvent = jMessage.GetField("event").str;
 
-        switch (jEvent)
-        {
+        switch(jEvent){
             case "game_command":
                 Debug.Log("Game Command");
                 JSONObject jEventData = jMessage.GetField("event_data");
@@ -930,39 +899,34 @@ public class PlayArcade : MonoBehaviour
                 {
                     string eventData = jEventData.str;
                     Debug.Log("Event Data:" + eventData);
-                    if (gameSessionCommandText) gameSessionCommandText.text = eventData;
+                    if(gameSessionCommandText) gameSessionCommandText.text = eventData;
 
                     SendToConnectedClients("Go Screw");
                 }
-                break;
+            break;
         }
     }
 
-    private void SendToConnectedClients(string message)
-    {
-        WebSocket currentWebSocket = webSocketList.ElementAt(0);
-        JSONObject newCommand = new JSONObject("{\"event\":\"ui_command\",\"event_data\":\"command100\"}");
-        string jsonString = "data1";
-        string data = "{\"action\":\"sendmessage\", \"data\":\"" + jsonString + "\", \"gsId\":\"" + GameSessionID + "\"}";
+    private void SendToConnectedClients(string message){
+         WebSocket currentWebSocket = webSocketList.ElementAt(0);
+         JSONObject newCommand = new JSONObject("{\"event\":\"ui_command\",\"event_data\":\"command100\"}");
+         string jsonString = "data1";
+         string data = "{\"action\":\"sendmessage\", \"data\":\"" + jsonString + "\", \"gsId\":\"" + GameSessionID + "\"}";
 
-        Debug.Log(data);
-        currentWebSocket.Send(data);
+         Debug.Log(data);
+         currentWebSocket.Send(data);
     }
 
-    public void CheckNetwork()
-    {
-        if (Application.internetReachability == NetworkReachability.NotReachable)
+    public void CheckNetwork() {
+        if(Application.internetReachability == NetworkReachability.NotReachable)
         {
             bConnectedToNetwork = false;
-        }
-        else
-        {
+        } else {
             bConnectedToNetwork = true;
         }
     }
 
-    private string EncryptString(string keyString, string plainText)
-    {
+    private string EncryptString(string keyString, string plainText)  {  
         byte[] cipherData;
         Aes aes = Aes.Create();
         keyString = keyString.Replace("-", string.Empty);
@@ -988,10 +952,9 @@ public class PlayArcade : MonoBehaviour
         Array.Copy(aes.IV, 0, combinedData, 0, aes.IV.Length);
         Array.Copy(cipherData, 0, combinedData, aes.IV.Length, cipherData.Length);
         return Convert.ToBase64String(combinedData);
-    }
+    }  
 
-    private string DecryptString(string combinedString, string keyString)
-    {
+    private string DecryptString(string combinedString, string keyString)  {  
         string plainText;
         keyString = keyString.Replace("-", string.Empty);
         byte[] combinedData = Convert.FromBase64String(combinedString);
@@ -1017,20 +980,19 @@ public class PlayArcade : MonoBehaviour
 
             return plainText;
         }
-    }
+    }  
 
-    private IEnumerator ConnectWhenReady(float delay)
-    {
+    IEnumerator ConnectWhenReady(float delay){
         yield return new WaitForSeconds(delay);
-        if (bConnectedToNetwork)
-        {
+        if(bConnectedToNetwork){
             GameSessionID = Guid.NewGuid().ToString().Replace("-", string.Empty).Replace("+", string.Empty).Substring(0, 6).ToUpper();
             Debug.Log("GameSessionID: " + GameSessionID);
             ConnectToWebSocket(GameSessionID);
-        }
-        else
-        {
-            StartCoroutine(ConnectWhenReady(delay));
-        }
+        } else {
+           StartCoroutine(ConnectWhenReady(delay));    
+        }   
     }
+    
 }
+
+

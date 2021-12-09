@@ -1,4 +1,5 @@
 // File: PlayArcade.jslib
+
 mergeInto(LibraryManager.library, {
 
     OnAppReady: function () {
